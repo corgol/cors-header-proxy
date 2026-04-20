@@ -1,58 +1,107 @@
-// Reference: https://developers.cloudflare.com/workers/examples/cors-header-proxy
-const corsHeaders = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET,HEAD,POST,OPTIONS",
-        "Access-Control-Max-Age": "86400",
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Demo of CORS Anywhere</title>
+<meta name="viewport" content="width=device-width">
+<style>
+html, body {
+  margin: 0;
+  height: 100%;
+  padding: 3px;
+  font-family: Arial, sans-serif;
+  font-size: 16px;
 }
-function handleOptions (request) {
-        // Make sure the necessary headers are present
-        // for this to be a valid pre-flight request
-        let headers = request.headers
-        if (
-                headers.get("Origin") !== null &&
-                headers.get("Access-Control-Request-Method") !== null &&
-                headers.get("Access-Control-Request-Headers") !== null
-        ) {
-                // Handle CORS pre-flight request.
-                // If you want to check or reject the requested method + headers
-                // you can do that here.
-                let respHeaders = {
-                        ...corsHeaders,
-                        // Allow all future content Request headers to go back to browser
-                        // such as Authorization (Bearer) or X-Client-Name-Version
-                        "Access-Control-Allow-Headers": request.headers.get("Access-Control-Request-Headers"),
-                }
-                return new Response(null, {
-                        headers: respHeaders,
-                })
-        }
-        else {
-                // Handle standard OPTIONS request.
-                // If you want to allow other HTTP Methods, you can do that here.
-                return new Response(null, {
-                        headers: {
-                                Allow: "GET, HEAD, POST, OPTIONS",
-                        },
-                })
-        }
+* {
+  -moz-box-sizing: border-box;
+       box-sizing: border-box;
 }
-async function handleRequest (request) {
-        let response
-        if (request.method === "OPTIONS") {
-                response = handleOptions(request)
-        }
-        else {
-                response = await fetch(request)
-                response = new Response(response.body, response)
-                response.headers.set("Access-Control-Allow-Origin", "*")
-                response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-        }
-        return response
+label { display: block; }
+input {
+  display: block;
+  width: 100%;
+  padding: 8px 5px;
+  border: 1px solid #CCC;
 }
-addEventListener("fetch", (event) => {
-        event.respondWith(
-                handleRequest(event.request).catch(
-                        (err) => new Response(err.stack, { status: 500 })
-                )
-        );
-});
+button {
+  display: inline-block;
+  width: 49%;
+  padding: 8px;
+}
+textarea {
+  width: 100%;
+  height: 100%;
+}
+#top {
+  height: 180px;
+  position: relative;
+
+}
+#bottom {
+  height: 100%;
+  margin-top: -180px;
+  padding-top: 180px;
+}
+</style>
+</head>
+<body>
+<div id="top">
+  CORS Anywhere demo &bull; <a href="https://github.com/Rob--W/cors-anywhere/">Github</a> &bull; <a href="http://cors-anywhere.herokuapp.com">Live server</a>.
+  <label>
+    Url to be fetched (example: <a href="//robwu.nl/dump.php">robwu.nl/dump.php</a>)
+    <input type="url" id="url" value="">
+  </label>
+  <label>
+    If using POST, enter the data:
+    <input type="text" id="data">
+  </label>
+  <label>
+    <button id="get">GET</button><button id="post">POST</button>
+  </label>
+</div>
+<div id="bottom">
+  <textarea id="output"></textarea>
+</div>
+
+<script>
+  var cors_api_url = 'https://cors-proxy.cooks.fyi/';
+  function doCORSRequest(options, printResult) {
+    var x = new XMLHttpRequest();
+    x.open(options.method, cors_api_url + options.url);
+    x.onload = x.onerror = function() {
+      printResult(
+        options.method + ' ' + options.url + '\n' +
+        x.status + ' ' + x.statusText + '\n\n' +
+        (x.responseText || '')
+      );
+    };
+    if (/^POST/i.test(options.method)) {
+      x.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    }
+    x.send(options.data);
+  }
+
+  // Bind event
+  (function() {
+    var urlField = document.getElementById('url');
+    var dataField = document.getElementById('data');
+    var outputField = document.getElementById('output');
+    document.getElementById('get').onclick =
+    document.getElementById('post').onclick = function(e) {
+      e.preventDefault();
+      doCORSRequest({
+        method: this.id === 'post' ? 'POST' : 'GET',
+        url: urlField.value,
+        data: dataField.value
+      }, function printResult(result) {
+        outputField.value = result;
+      });
+    };
+  })();
+  if (typeof console === 'object') {
+    console.log('// To test a local CORS Anywhere server, set cors_api_url. For example:');
+    console.log('cors_api_url = "http://localhost:8080/"');
+  }
+</script>
+</body>
+</html>
